@@ -41,7 +41,7 @@ public class AddressInput extends JPanel {
 	private boolean updateSpaceField;
 	private boolean stateChanging;
 	private JTextField spaceField;
-
+	
 	private static final Comparator<AddressSpace> ADDRESS_SPACE_SORT_COMPARATOR =
 		new Comparator<AddressSpace>() {
 			@Override
@@ -118,24 +118,26 @@ public class AddressInput extends JPanel {
 	/**
 	 * Returns the address in the field or null if the address can't
 	 * be parsed.
+	 * 
 	 * @throws NullPointerException if AddressFactory has not been set.
 	 */
 	public Address getAddress() {
 		String addrStr = textField.getText();
-		if (comboAdded) {
-			AddressSpace space = (AddressSpace) combo.getSelectedItem();
-			try {
-				return space.getAddress(addrStr);
-			}
-			catch (AddressFormatException e) {
-				return null;
-			}
+
+		AddressSpace space = getAddressSpace();
+		try {
+			return space.getAddress(addrStr);
 		}
-		return addrFactory.getAddress(addrStr);
+		catch (AddressFormatException e) {
+			return null;
+		}
 	}
 
 	/**
-	 * Returns the address space selected in the combobox or the default space if no combo box.
+	 * Returns the address space selected in the combobox or in the input text itself
+	 * if specified (eg: "register:1"). If the address space is not specified; returns the
+	 * default space.
+	 * 
 	 * @throws NullPointerException if AddressFactory has not been set.
 	 */
 	public AddressSpace getAddressSpace() {

@@ -27,7 +27,7 @@ public class m68kEmulateInstructionStateModifier extends EmulateInstructionState
 	private RegisterValue ISA_MODE0;
 	private RegisterValue ISA_MODE1;
 */
-	
+
 	public m68kEmulateInstructionStateModifier(Emulate emu) {
 		super(emu);
 /*
@@ -41,69 +41,70 @@ public class m68kEmulateInstructionStateModifier extends EmulateInstructionState
 		ISA_MODE0 = new RegisterValue(isaModeReg, BigInteger.ZERO);
 */
 
-	// These classes are defined here:
-	// ghidra.git/Ghidra/Framework/SoftwareModeling/src/main/java/ghidra/pcode/emulate/callother
+		// These classes are defined here:
+		// ghidra/Ghidra/Framework/SoftwareModeling/src/main/java/ghidra/pcode/emulate/callother
 
-        registerPcodeOpBehavior("countLeadingZeros", new CountLeadingZerosOpBehavior());
+		registerPcodeOpBehavior("countLeadingZeros", new CountLeadingZerosOpBehavior());
 	}
 
-        /**
-         * Initialize ISM register based upon context-register state before first instruction is executed.
-         */
+	/**
+	 * Initialize ISM register based upon context-register state before first
+	 * instruction is executed.
+	 */
 /*
-        @Override
-        public void initialExecuteCallback(Emulate emulate, Address current_address, RegisterValue contextRegisterValue) throws LowlevelError {
-                BigInteger isaModeValue = BigInteger.ZERO;
-                if (contextRegisterValue != null) {
-                        isaModeValue = contextRegisterValue.getRegisterValue(isaModeReg).getUnsignedValueIgnoreMask();
-                }
-                if (!BigInteger.ZERO.equals(isaModeValue)) {
-                        isaModeValue = BigInteger.ONE;
-                }
-                emu.getMemoryState().setValue(ismReg, isaModeValue);
-        }
+    @Override
+    public void initialExecuteCallback(Emulate emulate, Address current_address, RegisterValue contextRegisterValue) throws LowlevelError {
+            BigInteger isaModeValue = BigInteger.ZERO;
+            if (contextRegisterValue != null) {
+                    isaModeValue = contextRegisterValue.getRegisterValue(isaModeReg).getUnsignedValueIgnoreMask();
+            }
+            if (!BigInteger.ZERO.equals(isaModeValue)) {
+                    isaModeValue = BigInteger.ONE;
+            }
+            emu.getMemoryState().setValue(ismReg, isaModeValue);
+    }
 */
 
-        /**
-         * Use ISM register value to establish ISA_MODE when branching/calling.
-         * If ISM = 0, check for odd destination address which may occur when
-         * jumping/returning indirectly to Thumb mode.  It is assumed that
-         * language will properly handle context changes during the flow of
-         * execution, we need only fix the current program counter.
-         */
+	/**
+	 * Use ISM register value to establish ISA_MODE when branching/calling. If
+	 * ISM = 0, check for odd destination address which may occur when
+	 * jumping/returning indirectly to Thumb mode. It is assumed that language
+	 * will properly handle context changes during the flow of execution, we
+	 * need only fix the current program counter.
+	 */
 /*
-        @Override
-        public void postExecuteCallback(Emulate emulate, Address lastExecuteAddress,
-                        PcodeOp[] lastExecutePcode, int lastPcodeIndex, Address currentAddress)
-                        throws LowlevelError {
-                if (lastPcodeIndex < 0) {
-                        // ignore fall-through condition
-                        return;
-                }
-                int lastOp = lastExecutePcode[lastPcodeIndex].getOpcode();
-                if (lastOp != PcodeOp.BRANCH && lastOp != PcodeOp.CBRANCH && lastOp != PcodeOp.BRANCHIND &&
-                        lastOp != PcodeOp.CALL && lastOp != PcodeOp.CALLIND && lastOp != PcodeOp.RETURN) {
-                        // only concerned with Branch, Call or Return ops
-                        return;
-                }
-                long tbValue = emu.getMemoryState().getValue(ismReg);
-                if (tbValue == 1) {
-                        // Thumb mode
-                        emu.setContextRegisterValue(ISA_MODE1); // change context to be consistent with ISM value
-                        if ((currentAddress.getOffset() & 0x1) == 1) {
-                                emulate.setExecuteAddress(currentAddress.previous());
-                        }
-                }
-                else {
+    @Override
+    public void postExecuteCallback(Emulate emulate, Address lastExecuteAddress,
+                    PcodeOp[] lastExecutePcode, int lastPcodeIndex, Address currentAddress)
+                    throws LowlevelError {
+            if (lastPcodeIndex < 0) {
+                    // ignore fall-through condition
+                    return;
+            }
+            int lastOp = lastExecutePcode[lastPcodeIndex].getOpcode();
+            if (lastOp != PcodeOp.BRANCH && lastOp != PcodeOp.CBRANCH && lastOp != PcodeOp.BRANCHIND &&
+                    lastOp != PcodeOp.CALL && lastOp != PcodeOp.CALLIND && lastOp != PcodeOp.RETURN) {
+                    // only concerned with Branch, Call or Return ops
+                    return;
+            }
+            long tbValue = emu.getMemoryState().getValue(ismReg);
+            if (tbValue == 1) {
+                    // Thumb mode
+                    emu.setContextRegisterValue(ISA_MODE1); // change context to be consistent with ISM value
+                    if ((currentAddress.getOffset() & 0x1) == 1) {
+                            emulate.setExecuteAddress(currentAddress.previous());
+                    }
+            }
+            else {
 
-                        if ((currentAddress.getOffset() & 0x1) == 1) {
-                                throw new LowlevelError(
-                                        "Flow to odd address occured without setting ISM register (16-bit mode)");
-                        }
+                    if ((currentAddress.getOffset() & 0x1) == 1) {
+                            throw new LowlevelError(
+                                    "Flow to odd address occured without setting ISM register (16-bit mode)");
+                    }
 
-                        // MIPS mode
-                        emu.setContextRegisterValue(ISA_MODE0); // change context to be consistent with ISM value
-                }
-        }
+                    // MIPS mode
+                    emu.setContextRegisterValue(ISA_MODE0); // change context to be consistent with ISM value
+            }
+    }
 */
 }

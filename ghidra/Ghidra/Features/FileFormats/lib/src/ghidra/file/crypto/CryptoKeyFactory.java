@@ -27,6 +27,7 @@ import ghidra.framework.Application;
 import ghidra.util.Msg;
 import ghidra.util.NumericUtilities;
 import ghidra.util.exception.CryptoException;
+import ghidra.util.xml.XmlUtilities;
 import util.CollectionUtils;
 
 public final class CryptoKeyFactory {
@@ -43,8 +44,8 @@ public final class CryptoKeyFactory {
 	}
 
 	/**
-	 * Loads the crypto key XML file if it is not currently loaded OR if
-	 * it has changed since it was last loaded.
+	 * Loads the crypto key XML file if it is not currently loaded OR if it has
+	 * changed since it was last loaded.
 	 */
 	private static void loadIfNeeded() {
 		ResourceFile cryptoDirectory = getCryptoDirectory();
@@ -63,7 +64,7 @@ public final class CryptoKeyFactory {
 			try {
 				InputStream is = file.getInputStream();
 				try {
-					SAXBuilder sax = new SAXBuilder(false);
+					SAXBuilder sax = XmlUtilities.createSecureSAXBuilder(false, false);
 					Document doc = sax.build(is);
 					Element root = doc.getRootElement();
 					String firmwareName = root.getAttributeValue("NAME");
@@ -112,11 +113,11 @@ public final class CryptoKeyFactory {
 
 	public static ResourceFile getCryptoDirectory() {
 		try {
-			return Application.getModuleDataSubDirectory( "crypto" );
+			return Application.getModuleDataSubDirectory("crypto");
 		}
-		catch ( IOException e ) {
+		catch (IOException e) {
 		}
-		throw new RuntimeException( "cannot find crypto directory" );
+		throw new RuntimeException("cannot find crypto directory");
 	}
 
 	public static CryptoKey getCryptoKey(String firmwareName, String firmwarePath)
@@ -124,29 +125,29 @@ public final class CryptoKeyFactory {
 
 		loadIfNeeded();
 
-		Map<String, CryptoKey> firmwareMap = cryptoMap.get( firmwareName );
-		if ( firmwareMap == null ) {
+		Map<String, CryptoKey> firmwareMap = cryptoMap.get(firmwareName);
+		if (firmwareMap == null) {
 			throw new CryptoException(
 				"Firmware may be encrypted, but XML key file does not exist: " + "[" +
 					firmwareName + ".xml]");
 		}
 
-		CryptoKey cryptoKey = firmwareMap.get( firmwarePath );//check for absolute path
+		CryptoKey cryptoKey = firmwareMap.get(firmwarePath);//check for absolute path
 
-		if ( cryptoKey == null ) {//check for relative path
-			File file = new File( firmwarePath );
-			cryptoKey = firmwareMap.get( file.getName() );
+		if (cryptoKey == null) {//check for relative path
+			File file = new File(firmwarePath);
+			cryptoKey = firmwareMap.get(file.getName());
 		}
-		if ( cryptoKey == null ) {//okay it does not exist
+		if (cryptoKey == null) {//okay it does not exist
 			throw new CryptoException("[" + firmwareName + ".xml]" +
 				" does not contain an entry for " + firmwarePath + ".  File might be encrypted.");
 		}
-		if ( cryptoKey == CryptoKey.NOT_ENCRYPTED_KEY ) {
+		if (cryptoKey == CryptoKey.NOT_ENCRYPTED_KEY) {
 			return cryptoKey;
 		}
-		if ( cryptoKey.isEmpty() ) {
-			throw new CryptoException( "No key specified in [" + firmwareName + ".xml] file for [" +
-				firmwarePath + "]" );
+		if (cryptoKey.isEmpty()) {
+			throw new CryptoException(
+				"No key specified in [" + firmwareName + ".xml] file for [" + firmwarePath + "]");
 		}
 		return cryptoKey;
 	}

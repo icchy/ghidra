@@ -1104,11 +1104,9 @@ public class FieldPanel extends JPanel
 		showIndex(model.getNumIndexes().subtract(BigInteger.ONE), 0);
 		if (!layouts.isEmpty()) {
 			AnchoredLayout l = layouts.get(layouts.size() - 1);
-			cursorHandler.setCursorPos(0, l.getYPos() + l.getHeight() - 1, null); // null
-			// means
-			// don't
-			// notify
-			// listeners
+
+			// null means don't notify listeners
+			cursorHandler.setCursorPos(0, l.getYPos() + l.getHeight() - 1, null);
 		}
 		cursorHandler.doCursorEnd(trigger);
 	}
@@ -1419,8 +1417,12 @@ public class FieldPanel extends JPanel
 	public class BigFieldPanelMouseWheelListener implements MouseWheelListener {
 		@Override
 		public void mouseWheelMoved(MouseWheelEvent e) {
-			int wheelRotation = e.getWheelRotation();
-			int scrollAmount = (wheelRotation < 0) ? -40 : 40;
+			double wheelRotation = e.getPreciseWheelRotation();
+			int scrollAmount = (int) (wheelRotation * 40);
+			if (scrollAmount == 0) {
+				return;
+			}
+
 			if (hoverHandler.isHoverShowing()) {
 				hoverHandler.scroll(scrollAmount);
 			}

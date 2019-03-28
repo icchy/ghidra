@@ -28,61 +28,63 @@ import ghidra.app.util.bin.format.macho.commands.SegmentCommand;
 import ghidra.util.NumericUtilities;
 import ghidra.util.SystemUtilities;
 import ghidra.util.task.TaskMonitor;
+import ghidra.util.xml.XmlUtilities;
 
 public class PrelinkParser {
 
-	private static final String TAG_DATA      = "data";
-	private static final String TAG_FALSE     = "false";
-	private static final String TAG_TRUE      = "true";
-	private static final String TAG_INTEGER   = "integer";
-	private static final String TAG_STRING    = "string";
-	private static final String TAG_KEY       = "key";
-	private static final String TAG_DICT      = "dict";
-	private static final String TAG_ARRAY     = "array";
+	private static final String TAG_DATA = "data";
+	private static final String TAG_FALSE = "false";
+	private static final String TAG_TRUE = "true";
+	private static final String TAG_INTEGER = "integer";
+	private static final String TAG_STRING = "string";
+	private static final String TAG_KEY = "key";
+	private static final String TAG_DICT = "dict";
+	private static final String TAG_ARRAY = "array";
 
-	private Map<String, String> idToStrings  = new HashMap<String, String>();
-	private Map<String,   Long> idToIntegers = new HashMap<String,   Long>();
+	private Map<String, String> idToStrings = new HashMap<String, String>();
+	private Map<String, Long> idToIntegers = new HashMap<String, Long>();
 
 	private MachHeader mainHeader;
 	private ByteProvider provider;
 
-	public PrelinkParser( MachHeader mainHeader, ByteProvider provider ) {
+	public PrelinkParser(MachHeader mainHeader, ByteProvider provider) {
 		this.mainHeader = mainHeader;
 		this.provider = provider;
 	}
 
-	public List<PrelinkMap> parse( TaskMonitor monitor ) throws IOException, JDOMException, NoPreLinkSectionException {
+	public List<PrelinkMap> parse(TaskMonitor monitor)
+			throws IOException, JDOMException, NoPreLinkSectionException {
 		InputStream inputStream = findPrelinkInputStream();
 
 		monitor.setMessage("Parsing prelink plist...");
 
-		SAXBuilder sax = new SAXBuilder( false );
-		Document doc = sax.build( inputStream );
+		SAXBuilder sax = XmlUtilities.createSecureSAXBuilder(false, false);
+		Document doc = sax.build(inputStream);
 		Element root = doc.getRootElement();
 
 		List<PrelinkMap> list = new ArrayList<PrelinkMap>();
 
-		if ( root.getName().equals( TAG_ARRAY ) ) { // iOS version before 4.x
-			process( root.getChildren(), list, monitor );
+		if (root.getName().equals(TAG_ARRAY)) { // iOS version before 4.x
+			process(root.getChildren(), list, monitor);
 		}
 		else {
 			Iterator<?> iterator = root.getChildren().iterator();
-			while ( iterator.hasNext() ) {
-				if ( monitor.isCancelled() ) {
+			while (iterator.hasNext()) {
+				if (monitor.isCancelled()) {
 					break;
 				}
-				Element element = (Element)iterator.next();
-				if ( element.getName().equals( TAG_KEY ) ) {
+				Element element = (Element) iterator.next();
+				if (element.getName().equals(TAG_KEY)) {
 					String value = element.getValue();
-					if ( value.equals( PrelinkConstants.kPrelinkPersonalitiesKey ) ) {
+					if (value.equals(PrelinkConstants.kPrelinkPersonalitiesKey)) {
 						Element arrayElement = (Element) iterator.next();
-						if ( arrayElement.getChildren().size() == 0 ) {
+						if (arrayElement.getChildren().size() == 0) {
 							//should be empty...
 						}
 					}
-					else if ( value.equals( PrelinkConstants.kPrelinkInfoDictionaryKey ) ) {
+					else if (value.equals(PrelinkConstants.kPrelinkInfoDictionaryKey)) {
 						Element arrayElement = (Element) iterator.next();
-						process( arrayElement.getChildren(), list, monitor );
+						process(arrayElement.getChildren(), list, monitor);
 					}
 				}
 			}
@@ -92,30 +94,30 @@ public class PrelinkParser {
 	}
 
 	private void process(List<?> children, List<PrelinkMap> list, TaskMonitor monitor) {
-		monitor.setMessage( "Processing prelink information..." );
+		monitor.setMessage("Processing prelink information...");
 
-		for ( int i = 0 ; i < children.size() ; ++i ) {
-			if ( monitor.isCancelled() ) {
+		for (int i = 0; i < children.size(); ++i) {
+			if (monitor.isCancelled()) {
 				break;
 			}
-			Element element = (Element)children.get( i );
-			if ( element.getName().equals( TAG_DICT ) ) {
-				PrelinkMap map = processElement( element, monitor );
-				list.add( map );
+			Element element = (Element) children.get(i);
+			if (element.getName().equals(TAG_DICT)) {
+				PrelinkMap map = processElement(element, monitor);
+				list.add(map);
 			}
 		}
 	}
 
-	private PrelinkMap processElement( Element parentElement, TaskMonitor monitor ) {
+	private PrelinkMap processElement(Element parentElement, TaskMonitor monitor) {
 		PrelinkMap map = new PrelinkMap();
 		Iterator<?> iterator = parentElement.getChildren().iterator();
-		while ( iterator.hasNext() ) {
-			if ( monitor.isCancelled() ) {
+		while (iterator.hasNext()) {
+			if (monitor.isCancelled()) {
 				break;
 			}
-			Element element = (Element)iterator.next();
-			if ( element.getName().equals( TAG_KEY ) ) {
-				Element valueElement = (Element)iterator.next();
+			Element element = (Element) iterator.next();
+			if (element.getName().equals(TAG_KEY)) {
+				Element valueElement = (Element) iterator.next();
 				processValue(element, valueElement, map, monitor);
 			}
 			else {
@@ -125,103 +127,104 @@ public class PrelinkParser {
 		return map;
 	}
 
-	private String processValue(Element keyElement, Element valueElement, PrelinkMap map, TaskMonitor monitor) {
-		String key = keyElement.getValue();		
-		if ( valueElement.getName().equals( TAG_STRING ) ) {
+	private String processValue(Element keyElement, Element valueElement, PrelinkMap map,
+			TaskMonitor monitor) {
+		String key = keyElement.getValue();
+		if (valueElement.getName().equals(TAG_STRING)) {
 			return processString(map, key, valueElement);
 		}
-		else if ( valueElement.getName().equals( TAG_INTEGER ) ) {
+		else if (valueElement.getName().equals(TAG_INTEGER)) {
 			return processInteger(map, key, valueElement);
 		}
-		else if ( valueElement.getName().equals( TAG_TRUE ) ) {
-			map.put( key, true );
+		else if (valueElement.getName().equals(TAG_TRUE)) {
+			map.put(key, true);
 			return "true";
 		}
-		else if ( valueElement.getName().equals( TAG_FALSE ) ) {
-			map.put( key, false );
+		else if (valueElement.getName().equals(TAG_FALSE)) {
+			map.put(key, false);
 			return "false";
 		}
-		else if ( valueElement.getName().equals( TAG_DATA ) ) {
-			map.put( key, valueElement.getValue() );
+		else if (valueElement.getName().equals(TAG_DATA)) {
+			map.put(key, valueElement.getValue());
 			return valueElement.getValue();
 		}
-		else if ( valueElement.getName().equals( TAG_DICT ) ) {
-			PrelinkMap dictMap = processElement( valueElement, monitor );
-			map.put( key, dictMap );
+		else if (valueElement.getName().equals(TAG_DICT)) {
+			PrelinkMap dictMap = processElement(valueElement, monitor);
+			map.put(key, dictMap);
 			return dictMap.toString();
 		}
-		else if ( valueElement.getName().equals( TAG_ARRAY ) ) {
+		else if (valueElement.getName().equals(TAG_ARRAY)) {
 			String arrayString = processArray(valueElement, map, monitor);
-			map.put( key, arrayString );
+			map.put(key, arrayString);
 			return arrayString;
 		}
 		else {
-			System.out.println( "Unhandled value type: " + valueElement.getName() );
+			System.out.println("Unhandled value type: " + valueElement.getName());
 			return valueElement.getValue();
 		}
 	}
 
 	private String processString(PrelinkMap map, String key, Element valueElement) {
 		String value = valueElement.getValue();
-		String id    = valueElement.getAttributeValue("ID");
+		String id = valueElement.getAttributeValue("ID");
 		String idref = valueElement.getAttributeValue("IDREF");
 
-		if ( id != null ) {
-			idToStrings.put( id, value );
+		if (id != null) {
+			idToStrings.put(id, value);
 		}
-		if ( value != null ) {
-			map.put( key, valueElement.getValue() );
+		if (value != null) {
+			map.put(key, valueElement.getValue());
 		}
-		if ( idref != null ) {
-			map.put( key, idToStrings.get( idref ) );
+		if (idref != null) {
+			map.put(key, idToStrings.get(idref));
 		}
 		return value;
 	}
 
 	private String processInteger(PrelinkMap map, String key, Element valueElement) {
 		String value = valueElement.getValue();
-		String id    = valueElement.getAttributeValue("ID");
+		String id = valueElement.getAttributeValue("ID");
 		String idref = valueElement.getAttributeValue("IDREF");
 
 		long numericValue = -1;
 		try {
-			numericValue = NumericUtilities.parseHexLong( value );
+			numericValue = NumericUtilities.parseHexLong(value);
 		}
 		catch (Exception e) {
 		}
 
-		if ( id != null ) {
-			idToIntegers.put( id, numericValue );
+		if (id != null) {
+			idToIntegers.put(id, numericValue);
 		}
 
-		map.put( key, numericValue );
+		map.put(key, numericValue);
 
-		if ( idref != null ) {
-			map.put( key, idToIntegers.get( idref ) );
+		if (idref != null) {
+			map.put(key, idToIntegers.get(idref));
 		}
 
 		return value;
 	}
 
 	private String processArray(Element arrayElement, PrelinkMap map, TaskMonitor monitor) {
-		if ( !arrayElement.getName().equals( TAG_ARRAY ) ) {
-			throw new RuntimeException( "not an array element" );
+		if (!arrayElement.getName().equals(TAG_ARRAY)) {
+			throw new RuntimeException("not an array element");
 		}
 		StringBuffer buffer = new StringBuffer();
 		Iterator<?> iterator = arrayElement.getChildren().iterator();
-		while ( iterator.hasNext() ) {
-			if ( monitor.isCancelled() ) {
+		while (iterator.hasNext()) {
+			if (monitor.isCancelled()) {
 				break;
 			}
-			Element arrayChildElement = (Element)iterator.next();
-			processElement( arrayChildElement, monitor );
+			Element arrayChildElement = (Element) iterator.next();
+			processElement(arrayChildElement, monitor);
 
 			String value = processValue(arrayElement, arrayChildElement, map, monitor);
 
-			buffer.append( value );
+			buffer.append(value);
 
-			if ( iterator.hasNext() ) {
-				buffer.append( ',' );
+			if (iterator.hasNext()) {
+				buffer.append(',');
 			}
 		}
 		return buffer.toString();
@@ -235,7 +238,7 @@ public class PrelinkParser {
 				segment.getSegmentName().equals(PrelinkConstants.kPrelinkInfoSegment)) {
 				Section section = segment.getSectionByName(PrelinkConstants.kPrelinkInfoSection);
 				if (section != null && section.getSize() > 0) {
-					byte [] bytes = provider.readBytes(section.getOffset(), section.getSize() - 1);
+					byte[] bytes = provider.readBytes(section.getOffset(), section.getSize() - 1);
 
 					String string = new String(bytes);
 
@@ -248,7 +251,7 @@ public class PrelinkParser {
 						trimmed = trimmed.substring(0, trimmed.length() - 15) + "</array></dict>";
 					}
 
-					debug( bytes );
+					debug(bytes);
 
 					//fix bytes so XML will parse...
 
@@ -257,16 +260,17 @@ public class PrelinkParser {
 			}
 		}
 		if (prelinkInputStream == null) {
-			throw new NoPreLinkSectionException("Unable to locate __info section in __PRELINK segment inside mach-o header for COMPLZSS file system.");
+			throw new NoPreLinkSectionException(
+				"Unable to locate __info section in __PRELINK segment inside mach-o header for COMPLZSS file system.");
 		}
 		return prelinkInputStream;
 	}
 
-	private void debug( byte [] bytes ) {
+	private void debug(byte[] bytes) {
 		try {
-			if ( SystemUtilities.isInDevelopmentMode() ) {
-				File file = File.createTempFile( "__PRELINK_INFO", ".xml" );
-				OutputStream out = new FileOutputStream( file );
+			if (SystemUtilities.isInDevelopmentMode()) {
+				File file = File.createTempFile("__PRELINK_INFO", ".xml");
+				OutputStream out = new FileOutputStream(file);
 				try {
 					out.write(bytes);
 				}

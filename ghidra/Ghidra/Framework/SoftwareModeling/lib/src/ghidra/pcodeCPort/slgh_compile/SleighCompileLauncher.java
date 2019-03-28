@@ -31,6 +31,7 @@ import ghidra.pcodeCPort.context.SleighError;
 import ghidra.pcodeCPort.translate.XmlError;
 import ghidra.sleigh.grammar.*;
 import ghidra.util.Msg;
+import ghidra.util.xml.XmlUtilities;
 import utilities.util.FileResolutionResult;
 import utilities.util.FileUtilities;
 
@@ -66,9 +67,10 @@ public class SleighCompileLauncher implements GhidraLaunchable {
 	}
 
 	/**
-	 * Execute the Sleigh compiler process 
+	 * Execute the Sleigh compiler process
+	 * 
 	 * @param args sleigh compiler command line arguments
-	 * @param preprocs additional preprocessor macro 
+	 * @param preprocs additional preprocessor macro
 	 * @return exit code (TODO: exit codes are not well defined)
 	 * @throws JDOMException
 	 * @throws IOException
@@ -390,7 +392,7 @@ public class SleighCompileLauncher implements GhidraLaunchable {
 		String specfilein = "";
 
 		try {
-			SAXBuilder builder = new SAXBuilder(false);
+			SAXBuilder builder = XmlUtilities.createSecureSAXBuilder(false, false);
 			doc = builder.build(s);
 		}
 		catch (XmlError err) {

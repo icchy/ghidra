@@ -62,7 +62,7 @@ public class SevenZipFileSystem extends GFileSystemBase {
 	}
 
 	private Map<GFile, ISimpleInArchiveItem> map = new HashMap<>();
-	private ISevenZipInArchive archive;
+	private IInArchive archive;
 	private ISimpleInArchive archiveInterface;
 	private RandomAccessFile randomAccessFile;
 
